@@ -3,6 +3,13 @@
 
 [![Windows build status](https://ci.appveyor.com/api/projects/status/n50nxc7d8mm9bdpb/branch/master?svg=true)](https://ci.appveyor.com/project/KangLin/facerecognizer/branch/master)
 [![Linux build Status](https://travis-ci.org/KangLin/FaceRecognizer.svg?branch=master)](https://travis-ci.org/KangLin/FaceRecognizer)
+[![Gitter](https://badges.gitter.im/FaceRecognizer/community.svg)](https://gitter.im/FaceRecognizer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![GitHub stars](https://img.shields.io/github/stars/KangLin/FaceRecognizer)](https://github.com/KangLin/FaceRecognizer/stars)
+[![GitHub forks](https://img.shields.io/github/forks/KangLin/FaceRecognizer)](https://github.com/KangLin/FaceRecognizer/forks)
+[![GitHub issues](https://img.shields.io/github/issues/KangLin/FaceRecognizer)](https://github.com/KangLin/FaceRecognizer/issues)
+[![Current release](https://img.shields.io/github/release/KangLin/FaceRecognizer)](https://github.com/KangLin/FaceRecognizer/releases)
+[![All releases downloads](https://img.shields.io/github/downloads/KangLin/FaceRecognizer/total)](https://github.com/KangLin/FaceRecognizer/releases)
+
 
 --------------------------------------------------------------------------------
 
