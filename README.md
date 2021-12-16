@@ -10,7 +10,6 @@
 [![Current release](https://img.shields.io/github/release/KangLin/FaceRecognizer)](https://github.com/KangLin/FaceRecognizer/releases)
 [![All releases downloads](https://img.shields.io/github/downloads/KangLin/FaceRecognizer/total)](https://github.com/KangLin/FaceRecognizer/releases)
 
-
 --------------------------------------------------------------------------------
 
 - [简介](#简介)
@@ -22,6 +21,11 @@
 - [文档](#文档)
   - [编译文档](docs/Build.md)
   - [开发文档](docs/Develop.md)
+
+--------------------------------------------------------------------------------
+## 点赞时间线
+
+[![Stargazers over time](https://starchart.cc/KangLin/FaceRecognizer.svg)](https://starchart.cc/KangLin/FaceRecognizer)
 
 --------------------------------------------------------------------------------
 
