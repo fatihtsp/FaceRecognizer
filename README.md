@@ -136,7 +136,7 @@
 **注意**: 交流时，请直奔主题，主题明确，简明扼要。
 
 ### 捐赠资金
-[![捐赠](https://gitee.com/kl222/RabbitCommon/raw/master/Src/Resource/image/Contribute.png "捐赠")](https://gitee.com/kl222/RabbitCommon/raw/master/Src/Resource/image/Contribute.png "捐赠")
+[![捐赠](https://gitlab.com/kl222/RabbitCommon/-/raw/master/Src/Resource/image/Contribute.png "捐赠")](https://gitlab.com/kl222/RabbitCommon/-/raw/master/Src/Resource/image/Contribute.png "捐赠")
 
 - 捐赠后，请在 [Donate.md](Donate.md) 中留下你的姓名与捐赠金额
 - 感谢 [Donate.md](Donate.md) 中的捐赠者对本项目的支持
