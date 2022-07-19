@@ -31,8 +31,12 @@
 
 ## 简介
 
-- 项目位置: https://github.com/KangLin/FaceRecognizer
 - [项目主页](https://kanglin.github.io/FaceRecognizer/)
+- 项目位置: https://github.com/KangLin/FaceRecognizer
+- 镜像位置:
+  - https://gitlab.com/kl222/FaceRecognizer
+  - https://sourceforge.net/projects/facerecognizer/
+  - https://launchpad.net/facerecognizer
 
 本项目提供一些人脸常见应用。提供应用级 AI （人脸）框架，方便自定义快速开发 AI （人脸） 应用。
 以及性能测试比较框架，方便对第三方人脸库做性能测试比较。
