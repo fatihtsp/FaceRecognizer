@@ -1,0 +1,240 @@
+name: build_msvc
+
+on:
+  workflow_call:
+    outputs:
+      name:
+        description: "The artifact name"
+        value: ${{ jobs.build_msvc.outputs.name }}
+
+jobs:
+  build_msvc:
+
+    strategy:
+      matrix:
+        BUILD_TYPE: [Release, Debug]
+        qt_version: [6.6.2, 5.15.2, 5.12.12]
+        include:
+          - qt_version: 6.6.2
+            qt_arch: win64_msvc2019_64
+            qt_modules: qtscxml qtpositioning qtwebchannel qtwebsockets qtwebview qtmultimedia qt5compat
+            VCPKG_TARGET_TRIPLET: x64-windows
+            VCPKG_PLATFORM_TOOLSET: v142
+            CMAKE_GENERATOR_PLATFORM: x64
+            ENABLE_DOWNLOAD_MODULE: ON
+
+          - qt_version: 5.15.2
+            qt_arch: win64_msvc2019_64
+            VCPKG_TARGET_TRIPLET: x64-windows
+            VCPKG_PLATFORM_TOOLSET: v142
+            CMAKE_GENERATOR_PLATFORM: x64
+            ENABLE_DOWNLOAD_MODULE: OFF
+
+          - qt_version: 5.12.12
+            qt_arch: win32_msvc2017
+            VCPKG_TARGET_TRIPLET: x86-windows
+            VCPKG_PLATFORM_TOOLSET: v141
+            CMAKE_GENERATOR_PLATFORM: Win32
+            ENABLE_DOWNLOAD_MODULE: OFF
+
+    runs-on: windows-latest
+
+    env:
+      SOURCE_DIR:  ${{github.workspace}}\.cache\source
+      TOOSL_DIR:   ${{github.workspace}}\.cache\tools
+      INSTALL_DIR: ${{github.workspace}}\.cache\install_msvc_${{matrix.CMAKE_GENERATOR_PLATFORM}}_${{matrix.BUILD_TYPE}}
+      CMAKE_GENERATOR: "Visual Studio 17 2022"
+      CMAKE_GENERATOR_PLATFORM: ${{matrix.CMAKE_GENERATOR_PLATFORM}}
+      VCPKGGITCOMMITID: 2ac6ba173be85207a7bac4f0f02f5486f9fd4c0f
+      VCPKG_PLATFORM_TOOLSET: ${{matrix.VCPKG_PLATFORM_TOOLSET}}
+      VCPKG_TARGET_TRIPLET: ${{matrix.VCPKG_TARGET_TRIPLET}}
+      qt_modules: qtwebengine ${{matrix.qt_modules}}
+      artifact_name: build_msvc
+      FaceRecognizer_VERSION: v0.0.4
+      ENABLE_DOWNLOAD_MODULE: ${{matrix.ENABLE_DOWNLOAD_MODULE}}
+
+    # Map the job outputs to step outputs
+    outputs:
+      name: ${{ env.artifact_name }}
+
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Make directories
+        run: |
+          cmake -E make_directory ${{github.workspace}}/build
+          cmake -E make_directory ${{env.SOURCE_DIR}}
+          cmake -E make_directory ${{env.TOOSL_DIR}}
+          cmake -E make_directory ${{env.INSTALL_DIR}}
+
+      - name: Cache installed
+        uses: actions/cache@v3
+        id: cache-installed
+        with:
+          path: |
+            ${{env.INSTALL_DIR}}
+          key: install_msvc_qt${{matrix.qt_version}}_${{matrix.qt_arch}}_${{matrix.BUILD_TYPE}}
+
+      - name: run-vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: ${{env.VCPKGGITCOMMITID}}
+          vcpkgDirectory: ${{runner.workspace}}/vcpkg/
+
+      - name: build SeetaFace2
+        working-directory: ${{env.SOURCE_DIR}}
+        run: |
+          IF NOT EXIST ${{env.INSTALL_DIR}}\lib\cmake\SeetaFaceDetectorConfig.cmake (
+            git clone https://github.com/KangLin/SeetaFace2.git
+            cd SeetaFace2
+            cmake -E make_directory build
+            cd build
+            cmake .. ^
+                -A ${{matrix.CMAKE_GENERATOR_PLATFORM}} ^
+                -T ${{matrix.VCPKG_PLATFORM_TOOLSET}} ^
+                -DCMAKE_BUILD_TYPE=${{matrix.BUILD_TYPE}} ^
+                -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_DIR }}" ^
+                -DCMAKE_TOOLCHAIN_FILE="${{env.VCPKG_ROOT}}\scripts\buildsystems\vcpkg.cmake" ^
+                -DVCPKG_VERBOSE=ON ^
+                -DVCPKG_TARGET_TRIPLET=${{matrix.VCPKG_TARGET_TRIPLET}} ^
+                -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON ^
+                -DVCPKG_INSTALLED_DIR=${{env.INSTALL_DIR}}/SeetaFace2/vcpkg_installed ^
+                -DVCPKG_TRACE_FIND_PACKAGE=ON ^
+                -DBUILD_EXAMPLE=OFF
+            cmake --build . --config ${{matrix.BUILD_TYPE}}
+            cmake --build . --config ${{matrix.BUILD_TYPE}} --target install
+          )
+
+      - name: build libfacedetection
+        working-directory: ${{env.SOURCE_DIR}}
+        run: |
+          IF NOT EXIST ${{env.INSTALL_DIR}}\lib\cmake\facedetection\facedetectionConfig.cmake (
+            git clone https://github.com/ShiqiYu/libfacedetection.git
+            cd libfacedetection
+            cmake -E make_directory build
+            cd build
+            cmake .. ^
+                -A ${{matrix.CMAKE_GENERATOR_PLATFORM}} ^
+                -T ${{matrix.VCPKG_PLATFORM_TOOLSET}} ^
+                -DCMAKE_BUILD_TYPE=${{matrix.BUILD_TYPE}} ^
+                -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_DIR }}" ^
+                -DCMAKE_TOOLCHAIN_FILE="${{env.VCPKG_ROOT}}\scripts\buildsystems\vcpkg.cmake" ^
+                -DVCPKG_VERBOSE=ON ^
+                -DVCPKG_TARGET_TRIPLET=${{matrix.VCPKG_TARGET_TRIPLET}} ^
+                -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON ^
+                -DVCPKG_INSTALLED_DIR=${{env.INSTALL_DIR}}/libfacedetection/vcpkg_installed ^
+                -DVCPKG_TRACE_FIND_PACKAGE=ON ^
+                -DBUILD_SHARED_LIBS=ON
+            cmake --build . --config ${{matrix.BUILD_TYPE}}
+            cmake --build . --config ${{matrix.BUILD_TYPE}} --target install
+          )
+
+      - name: Cache Qt
+        id: cache-qt
+        uses: actions/cache@v1  # not v2!
+        with:
+          path: ${{env.TOOSL_DIR}}/qt
+          key: qt_${{matrix.qt_version}}_${{matrix.qt_arch}}
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          dir: '${{env.TOOSL_DIR}}/qt' # optional
+          version: '${{matrix.qt_version}}' # optional, default is 5.15.2
+          arch: '${{matrix.qt_arch}}' # optional
+          modules: '${{env.qt_modules}}' # optional. See: https://ddalcino.github.io/aqt-list-server/
+          cached: '${{steps.cache-qt.outputs.cache-hit}}' # optional, default is false
+
+      - name: git clone RabbitCommon
+        working-directory: ${{env.SOURCE_DIR}}
+        run: git clone https://github.com/KangLin/RabbitCommon.git
+
+      - name: build FaceRecognizer
+        env:
+          RabbitCommon_DIR: ${{env.SOURCE_DIR}}/RabbitCommon
+        run: |
+          cmake -E make_directory ${{github.workspace}}/build
+          cd ${{github.workspace}}/build
+          cmake ${{github.workspace}} ^
+            -A ${{matrix.CMAKE_GENERATOR_PLATFORM}} ^
+            -T ${{matrix.VCPKG_PLATFORM_TOOLSET}} ^
+            -DCMARK_SHARED=OFF ^
+            -DCMARK_TESTS=OFF ^
+            -DCMARK_STATIC=ON ^
+            -DCMAKE_BUILD_TYPE=${{matrix.BUILD_TYPE}} ^
+            -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/install ^
+            -DCMAKE_TOOLCHAIN_FILE=${{env.VCPKG_ROOT}}/scripts/buildsystems/vcpkg.cmake ^
+            -DVCPKG_VERBOSE=ON ^
+            -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON ^
+            -DVCPKG_APPLOCAL_DEPS=ON ^
+            -DVCPKG_TRACE_FIND_PACKAGE=ON ^
+            -DVCPKG_TARGET_TRIPLET=${{matrix.VCPKG_TARGET_TRIPLET}} ^
+            -DINSTALL_QT=ON ^
+            -DSeetaFace_DIR=${{env.INSTALL_DIR}}/lib/cmake ^
+            -DSeetaNet_DIR=${{env.INSTALL_DIR}}/lib/cmake ^
+            -DSeetaFaceDetector_DIR=${{env.INSTALL_DIR}}/lib/cmake ^
+            -DSeetaFaceLandmarker_DIR=${{env.INSTALL_DIR}}/lib/cmake ^
+            -DSeetaFaceRecognizer_DIR=${{env.INSTALL_DIR}}/lib/cmake ^
+            -DSeetaFaceTracker_DIR=${{env.INSTALL_DIR}}/lib/cmake ^
+            -DSeetaQualityAssessor_DIR=${{env.INSTALL_DIR}}/lib/cmake ^
+            -Dfacedetection_DIR=${{env.INSTALL_DIR}}/lib/cmake/facedetection
+          cmake --build . --config ${{matrix.BUILD_TYPE}}
+          cmake --build . --config ${{matrix.BUILD_TYPE}} --target install
+
+      - name: Package
+        if: ${{ matrix.BUILD_TYPE == 'Release' }}
+        working-directory: ${{github.workspace}}\build
+        run: |
+          move /Y install\plugins\*crypto*.dll install\bin
+          move /Y install\plugins\*ssl*.dll install\bin
+          copy /Y ${{env.INSTALL_DIR}}\bin\*.dll install\bin
+          copy /Y ${{env.INSTALL_DIR}}\lib\*.dll install\bin
+          copy /Y vcpkg_installed\${{matrix.VCPKG_TARGET_TRIPLET}}\bin\*.dll install\bin
+          makensis Install.nsi
+          copy /Y FaceRecognizer_${{env.FaceRecognizer_VERSION}}_Setup.exe FaceRecognizer_${{env.FaceRecognizer_VERSION}}_${{matrix.qt_arch}}_qt${{matrix.qt_version}}_Setup.exe
+
+      - name: Update configure file
+        if: ${{ matrix.BUILD_TYPE == 'Release' && matrix.qt_version == '6.6.2' }}
+        working-directory: ${{github.workspace}}\build
+        run: |
+          ${{github.workspace}}\build\install\bin\FaceRecognizerApp.exe ^
+              -f "update_windows.json" ^
+              --foc 1 ^
+              -n "FaceRecognizer_${{env.FaceRecognizer_VERSION}}_${{matrix.qt_arch}}_qt${{matrix.qt_version}}_Setup.exe" ^
+              -u https://github.com/KangLin/FaceRecognizer/releases/download/${{env.FaceRecognizer_VERSION}}/FaceRecognizer_${{env.FaceRecognizer_VERSION}}_${{matrix.qt_arch}}_qt${{matrix.qt_version}}_Setup.exe;https://sourceforge.net/projects/FaceRecognizer/files/${{env.FaceRecognizer_VERSION}}/FaceRecognizer_${{env.FaceRecognizer_VERSION}}_${{matrix.qt_arch}}_qt${{matrix.qt_version}}_Setup.exe ^
+              --pf FaceRecognizer_${{env.FaceRecognizer_VERSION}}_${{matrix.qt_arch}}_qt${{matrix.qt_version}}_Setup.exe ^
+              -m "${{env.FaceRecognizer_VERSION}}"
+
+      - name: Update artifact
+        if: ${{ matrix.BUILD_TYPE == 'Release' && matrix.qt_version == '6.6.2' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.artifact_name }}
+          path: |
+            ${{github.workspace}}\build\FaceRecognizer_${{env.FaceRecognizer_VERSION}}_${{matrix.qt_arch}}_qt${{matrix.qt_version}}_Setup.exe
+            ${{github.workspace}}\build\update_windows.json
+            ${{github.workspace}}\build\update_windows.json.xml
+
+#    - name: Upload To Github Release
+#      if: ${{ matrix.BUILD_TYPE == 'Release' && '5.12.12' == matrix.qt_version && startsWith(github.ref, 'refs/tags/') }}
+#      uses: softprops/action-gh-release@v0.1.14
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      with:
+#        prerelease: true
+##        body: |
+##          [:cn: 修改日志](ChangeLog_zh_CN.md) [:cn: 说明](README_zh_CN.md)
+##          [:us: Change log](ChangeLog.md) [:us: README](README.md)
+#        files: |
+#          ${{github.workspace}}\build\FaceRecognizer_windows_${{env.FaceRecognizer_VERSION}}.zip
+#          ${{github.workspace}}\build\FaceRecognizer_windows_${{env.FaceRecognizer_VERSION}}.zip.md5sum
+#          ${{github.workspace}}\build\FaceRecognizer_Setup_${{env.FaceRecognizer_VERSION}}.exe
+#          ${{github.workspace}}\build\FaceRecognizer_Setup_${{env.FaceRecognizer_VERSION}}.exe.md5sum
+#          ${{github.workspace}}\build\update_windows.xml
